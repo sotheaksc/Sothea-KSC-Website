@@ -788,8 +788,16 @@
   .lb-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
   .lb-title { font-family: var(--font-display); font-size: 22px; }
   html[lang="km"] .lb-title { font-family: var(--font-khmer); font-weight: 600; font-size: 19px; }
-  .lb-stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; gap: 12px; padding-block: 12px; }
-  .lb-stage img { max-height: 100%; max-width: 100%; object-fit: contain; min-height: 0; transition: opacity 0.25s ease; }
+  .lb-stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; gap: 12px; padding-block: 12px; overflow: hidden; }
+  .lb-stage img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    min-height: 0;
+    touch-action: pan-y;
+    will-change: transform;
+    transition: opacity 0.25s ease, transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
   .lb-stage img.is-loading { opacity: 0; }
   .lb-spinner {
     position: absolute;
@@ -832,18 +840,19 @@
     .hero .wrap, .loc-grid { grid-template-columns: 1fr; }
     .map-frame { min-height: 0; aspect-ratio: 1 / 1; }
     .hero {
-      align-items: flex-start;
+      align-items: center;
       min-height: 0;
     }
+    /* On phones the fish fill the whole hero behind the text. */
     .hero-bg {
-      background-size: 100% auto;
-      background-position: center bottom;
-      transform-origin: 50% 85%;
+      background-size: cover;
+      background-position: 68% 40%;
+      transform-origin: 60% 50%;
     }
     .hero::before {
-      background: linear-gradient(180deg, rgba(6, 6, 7, 0.92) 0%, rgba(6, 6, 7, 0.85) 55%, rgba(6, 6, 7, 0) 78%);
+      background: linear-gradient(180deg, rgba(6, 6, 7, 0.72) 0%, rgba(6, 6, 7, 0.45) 50%, rgba(6, 6, 7, 0.78) 100%);
     }
-    .hero .wrap { padding-block: 40px calc(56vw + 8px); }
+    .hero .wrap { padding-block: 56px; }
     .craft-grid { grid-template-columns: 1fr; }
     .craft-photo { aspect-ratio: 16 / 10; }
     .section { padding-block: 56px; }
@@ -1703,29 +1712,52 @@
     im.src = url;
   }
 
-  function showPhoto(n) {
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // dir: 1 = next (slides in from the right), -1 = previous (from the left), 0 = no slide.
+  function showPhoto(n, dir) {
     const imgs = current.imgs;
+    if (reduceMotion) dir = 0;
+    dir = dir || 0;
     photo = (n + imgs.length) % imgs.length;
     const url = lbUrl(imgs[photo]);
     const token = ++lbToken;
+    const started = performance.now();
     lbImg.alt = current[lang][0];
     lbThumbs.querySelectorAll("button").forEach((t, i) => t.setAttribute("aria-current", i === photo ? "true" : "false"));
 
-    // Hide the previous photo straight away and show a spinner until the new one has loaded.
+    // The old photo slides out and fades. A spinner shows if the new one takes a while.
+    lbImg.style.transition = "";
+    lbImg.style.opacity = "";
+    lbImg.style.transform = dir ? "translateX(" + (-dir * 40) + "%)" : "";
     lbImg.classList.add("is-loading");
-    const spinTimer = setTimeout(() => { if (token === lbToken) lbSpinner.hidden = false; }, 120);
+    const spinTimer = setTimeout(() => { if (token === lbToken) lbSpinner.hidden = false; }, 160);
     const loader = new Image();
-    const done = () => {
+
+    const reveal = () => {
       if (token !== lbToken) return;
       clearTimeout(spinTimer);
-      lbImg.src = url;
       lbSpinner.hidden = true;
-      requestAnimationFrame(() => lbImg.classList.remove("is-loading"));
+      // Put the new photo on the opposite side without animating, then slide it into place.
+      lbImg.style.transition = "none";
+      lbImg.style.transform = dir ? "translateX(" + (dir * 40) + "%)" : "";
+      lbImg.src = url;
+      void lbImg.offsetWidth;
+      lbImg.style.transition = "";
+      requestAnimationFrame(() => {
+        lbImg.style.transform = "";
+        lbImg.classList.remove("is-loading");
+      });
       lbPreloaded.add(url);
       if (imgs.length > 1) {
         preload(imgs[(photo + 1) % imgs.length]);
         preload(imgs[(photo - 1 + imgs.length) % imgs.length]);
       }
+    };
+    const done = () => {
+      // Let the old photo finish sliding out before the new one comes in.
+      const wait = dir ? Math.max(0, 200 - (performance.now() - started)) : 0;
+      setTimeout(reveal, wait);
     };
     loader.onload = done;
     loader.onerror = done;
@@ -1743,7 +1775,7 @@
       t.type = "button";
       t.setAttribute("aria-label", String(n + 1));
       t.innerHTML = '<img src="' + imgSrc(id, 160) + '" alt="">';
-      t.addEventListener("click", () => showPhoto(n));
+      t.addEventListener("click", () => { if (n !== photo) showPhoto(n, n > photo ? 1 : -1); });
       lbThumbs.appendChild(t);
     });
     const multi = current.imgs.length > 1;
@@ -1760,6 +1792,9 @@
     lbToken++;
     lb.hidden = true;
     lbImg.removeAttribute("src");
+    lbImg.style.transition = "";
+    lbImg.style.transform = "";
+    lbImg.style.opacity = "";
     lbImg.classList.add("is-loading");
     lbSpinner.hidden = true;
     document.body.style.overflow = "";
@@ -1767,24 +1802,51 @@
   }
 
   document.getElementById("lb-close").addEventListener("click", closeLb);
-  document.getElementById("lb-prev").addEventListener("click", () => showPhoto(photo - 1));
-  document.getElementById("lb-next").addEventListener("click", () => showPhoto(photo + 1));
+  document.getElementById("lb-prev").addEventListener("click", () => showPhoto(photo - 1, -1));
+  document.getElementById("lb-next").addEventListener("click", () => showPhoto(photo + 1, 1));
   lb.addEventListener("click", e => { if (e.target === lb || e.target.classList.contains("lb-stage")) closeLb(); });
   document.addEventListener("keydown", e => {
     if (lb.hidden) return;
     if (e.key === "Escape") closeLb();
-    if (e.key === "ArrowLeft") showPhoto(photo - 1);
-    if (e.key === "ArrowRight") showPhoto(photo + 1);
+    if (e.key === "ArrowLeft") showPhoto(photo - 1, -1);
+    if (e.key === "ArrowRight") showPhoto(photo + 1, 1);
   });
 
+  // Swipe: the photo follows the finger, then slides to the next one or springs back.
   let touchX = null;
-  lb.addEventListener("touchstart", e => { touchX = e.touches[0].clientX; }, { passive: true });
-  lb.addEventListener("touchend", e => {
-    if (touchX === null || !current || current.imgs.length < 2) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    if (Math.abs(dx) > 50) showPhoto(photo + (dx < 0 ? 1 : -1));
+  let touchY = null;
+  let dragging = false;
+  lb.addEventListener("touchstart", e => {
+    if (!current || current.imgs.length < 2 || e.touches.length > 1) { touchX = null; return; }
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+    dragging = false;
+  }, { passive: true });
+  lb.addEventListener("touchmove", e => {
+    if (touchX === null || reduceMotion) return;
+    const dx = e.touches[0].clientX - touchX;
+    const dy = e.touches[0].clientY - touchY;
+    if (!dragging && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) dragging = true;
+    if (!dragging) return;
+    lbImg.style.transition = "none";
+    lbImg.style.transform = "translateX(" + dx + "px)";
+    lbImg.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 500));
+  }, { passive: true });
+  const endTouch = e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches && e.changedTouches.length ? e.changedTouches[0].clientX - touchX : 0;
     touchX = null;
-  });
+    if (Math.abs(dx) > 50) {
+      showPhoto(photo + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+    } else if (dragging) {
+      lbImg.style.transition = "";
+      lbImg.style.transform = "";
+      lbImg.style.opacity = "";
+    }
+    dragging = false;
+  };
+  lb.addEventListener("touchend", endTouch);
+  lb.addEventListener("touchcancel", endTouch);
 
   applyText();
 
