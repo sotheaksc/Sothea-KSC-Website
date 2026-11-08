@@ -1,0 +1,24 @@
+{
+  "name": "sothea-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Content editor (Sanity Studio) for the Sothea Khmer Silver Handicrafts website",
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "import-content": "sanity dataset import seed.tar.gz production --replace",
+    "import-products": "sanity dataset import products-update.tar.gz production --replace",
+    "import-reviews": "sanity dataset import reviews.ndjson production --replace"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "react": "^19.2.2",
+    "react-dom": "^19.2.2",
+    "sanity": "^6.20.0",
+    "styled-components": "^6.1.15"
+  }
+}

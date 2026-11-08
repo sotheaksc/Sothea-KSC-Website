@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://sotheasilver.com/</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://sotheasilver.com/images/hero-fishes.jpg</image:loc>
+      <image:title>Handmade Khmer silver fish, Sothea Khmer Silver Handicrafts</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://sotheasilver.com/images/p/container-02.jpg</image:loc>
+      <image:title>Khmer silver footed bowl with lion handles</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://sotheasilver.com/images/p/pka-rang-full-set.jpg</image:loc>
+      <image:title>Pka Rang Khmer silver jewelry set</image:title>
+    </image:image>
+  </url>
+</urlset>
