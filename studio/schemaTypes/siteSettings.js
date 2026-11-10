@@ -130,6 +130,15 @@ export const siteSettings = defineType({
     defineField({name: 'googleReviewsUrl', title: 'Google reviews link', type: 'url', group: 'reviews', description: 'Used by the "Write a review" and "See all reviews" buttons.'}),
 
     // Location
+    str('inviteEyebrow', 'Invitation (40+ band): small line at the top', 'location'),
+    str('inviteYears', 'Invitation: words next to "40+"', 'location'),
+    str('inviteTitle', 'Invitation: title', 'location'),
+    para('inviteText', 'Invitation: text', 'location'),
+    str('inviteStat1', 'Invitation: words under "1990"', 'location'),
+    str('inviteStat2Num', 'Invitation: second highlight', 'location'),
+    str('inviteStat2', 'Invitation: words under the second highlight', 'location'),
+    str('inviteBtn', 'Invitation: map button', 'location'),
+    str('inviteCall', 'Invitation: call button', 'location'),
     str('locEyebrow', 'Small line above the title', 'location'),
     str('locTitle', 'Section title', 'location'),
     para('locText', 'Section intro', 'location'),
